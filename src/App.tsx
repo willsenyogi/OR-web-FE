@@ -1,35 +1,69 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from "react";
+import { Navigation } from "./components/Navigation";
+import { HomePage } from "./components/HomePage";
+import { InputPage, MDVRPData } from "./components/InputPage";
+import { ResultsPage } from "./components/ResultsPage";
+import { AboutPage } from "./components/AboutPage";
+import { solvePSO, solveGA, solveILP, SolutionResult } from "./utils/mdvrpSolver";
+import { dummyInputData, dummyResults } from "./utils/dummyData";
+import { Toaster } from "./components/ui/sonner";
+import { toast } from "sonner";
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [currentPage, setCurrentPage] = useState('home');
+  // Initialize with dummy data for demo purposes
+  const [inputData, setInputData] = useState<MDVRPData | null>(dummyInputData);
+  const [results, setResults] = useState<{
+    pso: SolutionResult;
+    ga: SolutionResult;
+    ilp: SolutionResult;
+  } | null>(dummyResults);
+
+  const handleRunSimulation = (data: MDVRPData) => {
+    toast.loading("Menjalankan simulasi...");
+    
+    // Save input data
+    setInputData(data);
+    
+    // Simulate async computation with setTimeout
+    setTimeout(() => {
+      const psoResult = solvePSO(data);
+      const gaResult = solveGA(data);
+      const ilpResult = solveILP(data);
+      
+      setResults({
+        pso: psoResult,
+        ga: gaResult,
+        ilp: ilpResult,
+      });
+      
+      toast.success("Simulasi selesai!");
+      setCurrentPage('results');
+    }, 1000);
+  };
+
+  const renderPage = () => {
+    switch (currentPage) {
+      case 'home':
+        return <HomePage onNavigate={setCurrentPage} />;
+      case 'input':
+        return <InputPage onRunSimulation={handleRunSimulation} />;
+      case 'results':
+        return <ResultsPage results={results} inputData={inputData} onNavigate={setCurrentPage} />;
+      case 'about':
+        return <AboutPage />;
+      default:
+        return <HomePage onNavigate={setCurrentPage} />;
+    }
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div className="min-h-screen bg-background">
+      <Navigation currentPage={currentPage} onNavigate={setCurrentPage} />
+      <main className="min-h-[calc(100vh-4rem)]">
+        {renderPage()}
+      </main>
+      <Toaster />
+    </div>
+  );
 }
-
-export default App
