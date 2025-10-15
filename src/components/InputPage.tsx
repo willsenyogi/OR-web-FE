@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "./ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { ScrollArea } from "./ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 
 export interface MDVRPData {
   numDepots: number;
@@ -22,7 +22,7 @@ export interface MDVRPData {
 }
 
 interface InputPageProps {
-  onRunSimulation: (data: MDVRPData) => void;
+  onRunSimulation: (data: MDVRPData, parameters: { maxIterations: number; populationSize: number }) => void | Promise<void>;
 }
 
 export function InputPage({ onRunSimulation }: InputPageProps) {
@@ -102,7 +102,12 @@ export function InputPage({ onRunSimulation }: InputPageProps) {
       vehicles,
     };
 
-    onRunSimulation(mdvrpData);
+    const parameters = {
+      maxIterations,
+      populationSize,
+    };
+
+    onRunSimulation(mdvrpData, parameters);
   };
 
   return (

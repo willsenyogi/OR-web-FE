@@ -6,6 +6,8 @@ import { Button } from "./ui/button";
 import { SolutionResult } from "../utils/mdvrpSolver";
 import { MDVRPData } from "./InputPage";
 import { RouteMap } from "./RouteMap";
+import { PlotlyRouteMap } from "./PlotlyRouteMap";
+import { PlotlyComparisonCharts } from "./PlotlyComparisonCharts";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { Trophy, Clock, Route, TrendingDown, ArrowRight, AlertCircle } from "lucide-react";
 
@@ -16,10 +18,14 @@ interface ResultsPageProps {
     ilp: SolutionResult;
   } | null;
   inputData: MDVRPData | null;
+  plotlyPlots?: {
+    distance_comparison?: any;
+    time_comparison?: any;
+  } | null;
   onNavigate?: (page: string) => void;
 }
 
-export function ResultsPage({ results, inputData, onNavigate }: ResultsPageProps) {
+export function ResultsPage({ results, inputData, plotlyPlots, onNavigate }: ResultsPageProps) {
   if (!results || !inputData) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -260,7 +266,7 @@ export function ResultsPage({ results, inputData, onNavigate }: ResultsPageProps
           </CardContent>
         </Card>
 
-        {/* Route Visualization Maps */}
+        {/* Route Visualization Maps - Use Plotly if available, else fallback to SVG */}
         <div className="mb-8">
           <h2 className="mb-4">Plot Map Pembagian Rute</h2>
           <Tabs defaultValue="ilp" className="w-full">
@@ -270,55 +276,91 @@ export function ResultsPage({ results, inputData, onNavigate }: ResultsPageProps
               <TabsTrigger value="ilp">ILP</TabsTrigger>
             </TabsList>
             <TabsContent value="pso">
-              <RouteMap data={inputData} result={results.pso} algorithmName="PSO" />
+              {results.pso.plotlyMap ? (
+                <PlotlyRouteMap 
+                  plotData={results.pso.plotlyMap} 
+                  algorithmName="PSO"
+                  totalDistance={results.pso.totalDistance}
+                  executionTime={results.pso.executionTime}
+                />
+              ) : (
+                <RouteMap data={inputData} result={results.pso} algorithmName="PSO" />
+              )}
             </TabsContent>
             <TabsContent value="ga">
-              <RouteMap data={inputData} result={results.ga} algorithmName="GA" />
+              {results.ga.plotlyMap ? (
+                <PlotlyRouteMap 
+                  plotData={results.ga.plotlyMap} 
+                  algorithmName="GA"
+                  totalDistance={results.ga.totalDistance}
+                  executionTime={results.ga.executionTime}
+                />
+              ) : (
+                <RouteMap data={inputData} result={results.ga} algorithmName="GA" />
+              )}
             </TabsContent>
             <TabsContent value="ilp">
-              <RouteMap data={inputData} result={results.ilp} algorithmName="ILP" />
+              {results.ilp.plotlyMap ? (
+                <PlotlyRouteMap 
+                  plotData={results.ilp.plotlyMap} 
+                  algorithmName="ILP"
+                  totalDistance={results.ilp.totalDistance}
+                  executionTime={results.ilp.executionTime}
+                />
+              ) : (
+                <RouteMap data={inputData} result={results.ilp} algorithmName="ILP" />
+              )}
             </TabsContent>
           </Tabs>
         </div>
 
-        {/* Charts */}
-        <div className="grid lg:grid-cols-2 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Perbandingan Jarak Total</CardTitle>
-              <CardDescription>Jarak yang ditempuh oleh setiap algoritma</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={comparisonData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="distance" fill="#030213" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        {/* Charts - Use Plotly if available, else fallback to Recharts */}
+        {plotlyPlots && (plotlyPlots.distance_comparison || plotlyPlots.time_comparison) ? (
+          <div className="mb-8">
+            <PlotlyComparisonCharts 
+              distancePlot={plotlyPlots.distance_comparison}
+              timePlot={plotlyPlots.time_comparison}
+            />
+          </div>
+        ) : (
+          <div className="grid lg:grid-cols-2 gap-6 mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>Perbandingan Jarak Total</CardTitle>
+                <CardDescription>Jarak yang ditempuh oleh setiap algoritma</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={comparisonData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="distance" fill="#030213" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Perbandingan Waktu Eksekusi</CardTitle>
-              <CardDescription>Waktu komputasi setiap algoritma (ms)</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={comparisonData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="time" fill="#6366f1" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Perbandingan Waktu Eksekusi</CardTitle>
+                <CardDescription>Waktu komputasi setiap algoritma (ms)</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={comparisonData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="time" fill="#6366f1" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Convergence Chart */}
         <Card className="mb-8">

@@ -11,6 +11,7 @@ export interface SolutionResult {
     distance: number;
   }>;
   convergenceData: Array<{ iteration: number; fitness: number }>;
+  plotlyMap?: any; // Optional Plotly JSON for interactive map
 }
 
 // Calculate Euclidean distance

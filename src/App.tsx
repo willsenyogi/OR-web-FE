@@ -4,8 +4,9 @@ import { HomePage } from "./components/HomePage";
 import { InputPage, MDVRPData } from "./components/InputPage";
 import { ResultsPage } from "./components/ResultsPage";
 import { AboutPage } from "./components/AboutPage";
-import { solvePSO, solveGA, solveILP, SolutionResult } from "./utils/mdvrpSolver";
+import { SolutionResult } from "./utils/mdvrpSolver";
 import { dummyInputData, dummyResults } from "./utils/dummyData";
+import { runMDVRPSimulation } from "./utils/api";
 import { Toaster } from "./components/ui/sonner";
 import { toast } from "sonner";
 
@@ -18,28 +19,50 @@ export default function App() {
     ga: SolutionResult;
     ilp: SolutionResult;
   } | null>(dummyResults);
+  const [plotlyPlots, setPlotlyPlots] = useState<{
+    distance_comparison?: any;
+    time_comparison?: any;
+  } | null>(null);
 
-  const handleRunSimulation = (data: MDVRPData) => {
-    toast.loading("Menjalankan simulasi...");
+  const handleRunSimulation = async (
+    data: MDVRPData,
+    parameters: { maxIterations: number; populationSize: number }
+  ) => {
+    const loadingToast = toast.loading("Mengirim data ke server...", {
+      description: "Mohon tunggu, algoritma sedang bekerja"
+    });
     
     // Save input data
     setInputData(data);
     
-    // Simulate async computation with setTimeout
-    setTimeout(() => {
-      const psoResult = solvePSO(data);
-      const gaResult = solveGA(data);
-      const ilpResult = solveILP(data);
+    try {
+      // Call backend API
+      const response = await runMDVRPSimulation(data, parameters);
       
-      setResults({
-        pso: psoResult,
-        ga: gaResult,
-        ilp: ilpResult,
+      if (!response.success || !response.data) {
+        toast.error("Simulasi gagal", {
+          id: loadingToast,
+          description: response.error || "Terjadi kesalahan saat menjalankan simulasi"
+        });
+        return;
+      }
+      
+      setResults(response.data);
+      setPlotlyPlots(response.plots || null);
+      
+      toast.success("Simulasi selesai!", {
+        id: loadingToast,
+        description: "Hasil perhitungan PSO, GA, dan ILP berhasil didapatkan"
       });
       
-      toast.success("Simulasi selesai!");
       setCurrentPage('results');
-    }, 1000);
+    } catch (error) {
+      console.error('Simulation error:', error);
+      toast.error("Terjadi kesalahan", {
+        id: loadingToast,
+        description: error instanceof Error ? error.message : "Gagal menghubungi server backend"
+      });
+    }
   };
 
   const renderPage = () => {
@@ -49,7 +72,7 @@ export default function App() {
       case 'input':
         return <InputPage onRunSimulation={handleRunSimulation} />;
       case 'results':
-        return <ResultsPage results={results} inputData={inputData} onNavigate={setCurrentPage} />;
+        return <ResultsPage results={results} inputData={inputData} plotlyPlots={plotlyPlots} onNavigate={setCurrentPage} />;
       case 'about':
         return <AboutPage />;
       default:
