@@ -5,6 +5,7 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { SolutionResult } from "../utils/mdvrpSolver";
 import { MDVRPData } from "./InputPage";
+import { BackendResponse } from "../utils/api";
 import { RouteMap } from "./RouteMap";
 import { PlotlyRouteMap } from "./PlotlyRouteMap";
 import { PlotlyComparisonCharts } from "./PlotlyComparisonCharts";
@@ -18,14 +19,11 @@ interface ResultsPageProps {
     ilp: SolutionResult;
   } | null;
   inputData: MDVRPData | null;
-  plotlyPlots?: {
-    distance_comparison?: any;
-    time_comparison?: any;
-  } | null;
+  backendData?: BackendResponse | null;
   onNavigate?: (page: string) => void;
 }
 
-export function ResultsPage({ results, inputData, plotlyPlots, onNavigate }: ResultsPageProps) {
+export function ResultsPage({ results, inputData, backendData, onNavigate }: ResultsPageProps) {
   if (!results || !inputData) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -98,24 +96,25 @@ export function ResultsPage({ results, inputData, plotlyPlots, onNavigate }: Res
     );
   }
 
+  // Use backend data if available, otherwise use frontend calculated
   const comparisonData = [
-    {
-      name: 'PSO',
-      distance: results.pso.totalDistance,
-      time: results.pso.executionTime,
-      routes: results.pso.routes.length,
+    { 
+      name: 'PSO', 
+      distance: backendData?.pso?.best_value ?? results.pso.totalDistance, 
+      time: backendData?.pso?.time ? backendData.pso.time * 1000 : results.pso.executionTime, 
+      routes: results.pso.routes.length 
     },
-    {
-      name: 'GA',
-      distance: results.ga.totalDistance,
-      time: results.ga.executionTime,
-      routes: results.ga.routes.length,
+    { 
+      name: 'GA', 
+      distance: backendData?.ga?.best_value ?? results.ga.totalDistance, 
+      time: backendData?.ga?.time ? backendData.ga.time * 1000 : results.ga.executionTime, 
+      routes: results.ga.routes.length 
     },
-    {
-      name: 'ILP',
-      distance: results.ilp.totalDistance,
-      time: results.ilp.executionTime,
-      routes: results.ilp.routes.length,
+    { 
+      name: 'ILP', 
+      distance: backendData?.ilp?.best_value ?? results.ilp.totalDistance, 
+      time: backendData?.ilp?.time ? backendData.ilp.time * 1000 : results.ilp.executionTime, 
+      routes: results.ilp.routes.length 
     },
   ];
 
@@ -276,36 +275,36 @@ export function ResultsPage({ results, inputData, plotlyPlots, onNavigate }: Res
               <TabsTrigger value="ilp">ILP</TabsTrigger>
             </TabsList>
             <TabsContent value="pso">
-              {results.pso.plotlyMap ? (
+              {(backendData?.pso?.plot || results.pso.plotlyMap) ? (
                 <PlotlyRouteMap 
-                  plotData={results.pso.plotlyMap} 
+                  plotData={backendData?.pso?.plot || results.pso.plotlyMap} 
                   algorithmName="PSO"
-                  totalDistance={results.pso.totalDistance}
-                  executionTime={results.pso.executionTime}
+                  totalDistance={backendData?.pso?.best_value || results.pso.totalDistance}
+                  executionTime={backendData?.pso?.time ? backendData.pso.time * 1000 : results.pso.executionTime}
                 />
               ) : (
                 <RouteMap data={inputData} result={results.pso} algorithmName="PSO" />
               )}
             </TabsContent>
             <TabsContent value="ga">
-              {results.ga.plotlyMap ? (
+              {(backendData?.ga?.plot || results.ga.plotlyMap) ? (
                 <PlotlyRouteMap 
-                  plotData={results.ga.plotlyMap} 
+                  plotData={backendData?.ga?.plot || results.ga.plotlyMap} 
                   algorithmName="GA"
-                  totalDistance={results.ga.totalDistance}
-                  executionTime={results.ga.executionTime}
+                  totalDistance={backendData?.ga?.best_value || results.ga.totalDistance}
+                  executionTime={backendData?.ga?.time ? backendData.ga.time * 1000 : results.ga.executionTime}
                 />
               ) : (
                 <RouteMap data={inputData} result={results.ga} algorithmName="GA" />
               )}
             </TabsContent>
             <TabsContent value="ilp">
-              {results.ilp.plotlyMap ? (
+              {(backendData?.ilp?.plot || results.ilp.plotlyMap) ? (
                 <PlotlyRouteMap 
-                  plotData={results.ilp.plotlyMap} 
+                  plotData={backendData?.ilp?.plot || results.ilp.plotlyMap} 
                   algorithmName="ILP"
-                  totalDistance={results.ilp.totalDistance}
-                  executionTime={results.ilp.executionTime}
+                  totalDistance={backendData?.ilp?.best_value || results.ilp.totalDistance}
+                  executionTime={backendData?.ilp?.time ? backendData.ilp.time * 1000 : results.ilp.executionTime}
                 />
               ) : (
                 <RouteMap data={inputData} result={results.ilp} algorithmName="ILP" />

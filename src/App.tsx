@@ -6,7 +6,7 @@ import { ResultsPage } from "./components/ResultsPage";
 import { AboutPage } from "./components/AboutPage";
 import { SolutionResult } from "./utils/mdvrpSolver";
 import { dummyInputData, dummyResults } from "./utils/dummyData";
-import { runMDVRPSimulation } from "./utils/api";
+import { runMDVRPSimulation, BackendResponse } from "./utils/api";
 import { Toaster } from "./components/ui/sonner";
 import { toast } from "sonner";
 
@@ -19,10 +19,7 @@ export default function App() {
     ga: SolutionResult;
     ilp: SolutionResult;
   } | null>(dummyResults);
-  const [plotlyPlots, setPlotlyPlots] = useState<{
-    distance_comparison?: any;
-    time_comparison?: any;
-  } | null>(null);
+  const [backendData, setBackendData] = useState<BackendResponse | null>(null);
 
   const handleRunSimulation = async (
     data: MDVRPData,
@@ -48,7 +45,7 @@ export default function App() {
       }
       
       setResults(response.data);
-      setPlotlyPlots(response.plots || null);
+      setBackendData(response.rawBackendData || null);
       
       toast.success("Simulasi selesai!", {
         id: loadingToast,
@@ -72,7 +69,7 @@ export default function App() {
       case 'input':
         return <InputPage onRunSimulation={handleRunSimulation} />;
       case 'results':
-        return <ResultsPage results={results} inputData={inputData} plotlyPlots={plotlyPlots} onNavigate={setCurrentPage} />;
+        return <ResultsPage results={results} inputData={inputData} backendData={backendData} onNavigate={setCurrentPage} />;
       case 'about':
         return <AboutPage />;
       default:

@@ -68,22 +68,21 @@ export function InputPage({ onRunSimulation }: InputPageProps) {
 
     // Parse depot data
     const depots = depotData.map(row => ({
-      x: parseFloat(row.X),
-      y: parseFloat(row.Y),
+      x: parseFloat(row.Longitude),
+      y: parseFloat(row.Latitude),
     }));
 
     // Parse customer data
     const customers = customerData.map(row => ({
-      x: parseFloat(row.X),
-      y: parseFloat(row.Y),
+      x: parseFloat(row.Longitude),
+      y: parseFloat(row.Latitude),
       demand: parseFloat(row.Demand),
     }));
 
-    // Parse vehicle data
+    // Parse vehicle data - hanya capacity, backend yang handle assignment
     const vehicles = vehicleData.map((row, idx) => ({
       id: idx,
       capacity: parseFloat(row.Capacity),
-      depotId: row.DepotID !== undefined ? parseInt(row.DepotID) : 0,
     }));
 
     // Calculate aggregated values
@@ -134,21 +133,21 @@ export function InputPage({ onRunSimulation }: InputPageProps) {
               <FileUpload
                 fileType="depot"
                 label="Data Koordinat Depot"
-                description="Format: kolom X, Y (contoh: X,Y dalam koordinat numerik)"
+                description="Format: kolom Longitude, Latitude"
                 onFileLoaded={handleDepotFileLoaded}
               />
 
               <FileUpload
                 fileType="customer"
                 label="Data Koordinat Pelanggan & Demand"
-                description="Format: kolom X, Y, Demand"
+                description="Format: kolom Longitude, Latitude, Demand"
                 onFileLoaded={handleCustomerFileLoaded}
               />
 
               <FileUpload
                 fileType="vehicle"
                 label="Data Kendaraan & Kapasitas"
-                description="Format: kolom Capacity, DepotID (optional)"
+                description="Format: kolom Capacity"
                 onFileLoaded={handleVehicleFileLoaded}
               />
 
@@ -191,16 +190,16 @@ export function InputPage({ onRunSimulation }: InputPageProps) {
                           <TableHeader>
                             <TableRow>
                               <TableHead>No</TableHead>
-                              <TableHead>X</TableHead>
-                              <TableHead>Y</TableHead>
+                              <TableHead>Longitude</TableHead>
+                              <TableHead>Latitude</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {depotData.map((row, idx) => (
                               <TableRow key={idx}>
                                 <TableCell>{idx + 1}</TableCell>
-                                <TableCell>{row.X}</TableCell>
-                                <TableCell>{row.Y}</TableCell>
+                                <TableCell>{row.Longitude}</TableCell>
+                                <TableCell>{row.Latitude}</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
@@ -220,8 +219,8 @@ export function InputPage({ onRunSimulation }: InputPageProps) {
                           <TableHeader>
                             <TableRow>
                               <TableHead>No</TableHead>
-                              <TableHead>X</TableHead>
-                              <TableHead>Y</TableHead>
+                              <TableHead>Longitude</TableHead>
+                              <TableHead>Latitude</TableHead>
                               <TableHead>Demand</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -229,8 +228,8 @@ export function InputPage({ onRunSimulation }: InputPageProps) {
                             {customerData.map((row, idx) => (
                               <TableRow key={idx}>
                                 <TableCell>{idx + 1}</TableCell>
-                                <TableCell>{row.X}</TableCell>
-                                <TableCell>{row.Y}</TableCell>
+                                <TableCell>{row.Longitude}</TableCell>
+                                <TableCell>{row.Latitude}</TableCell>
                                 <TableCell>{row.Demand}</TableCell>
                               </TableRow>
                             ))}
@@ -252,9 +251,6 @@ export function InputPage({ onRunSimulation }: InputPageProps) {
                             <TableRow>
                               <TableHead>No</TableHead>
                               <TableHead>Capacity</TableHead>
-                              {vehicleData[0].DepotID !== undefined && (
-                                <TableHead>Depot ID</TableHead>
-                              )}
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -262,9 +258,6 @@ export function InputPage({ onRunSimulation }: InputPageProps) {
                               <TableRow key={idx}>
                                 <TableCell>{idx + 1}</TableCell>
                                 <TableCell>{row.Capacity}</TableCell>
-                                {row.DepotID !== undefined && (
-                                  <TableCell>{row.DepotID}</TableCell>
-                                )}
                               </TableRow>
                             ))}
                           </TableBody>

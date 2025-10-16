@@ -22,40 +22,55 @@ export function TemplateDownload() {
   };
 
   const downloadDepotTemplate = () => {
+    // Sample coordinates from Shanghai area (longitude, latitude)
     const content = generateCSV(
-      ['X', 'Y'],
+      ['Longitude', 'Latitude'],
       [
-        ['10', '20'],
-        ['50', '60'],
-        ['80', '30'],
+        ['121.27434', '31.02221'],
+        ['121.42334', '31.2915'],
+        ['121.52965', '31.02331'],
+        ['121.28732', '31.00092'],
+        ['121.36536', '31.08081'],
       ]
     );
     downloadCSV('template_depot.csv', content);
   };
 
   const downloadCustomerTemplate = () => {
+    // Sample customer coordinates with realistic demands
     const content = generateCSV(
-      ['X', 'Y', 'Demand'],
+      ['Longitude', 'Latitude', 'Demand'],
       [
-        ['15', '25', '10'],
-        ['35', '45', '15'],
-        ['55', '35', '20'],
-        ['65', '55', '12'],
-        ['75', '15', '18'],
+        ['121.49627', '31.11846', '16'],
+        ['121.53555', '31.0311', '19'],
+        ['121.58687', '31.29782', '16'],
+        ['121.6178', '31.32966', '11'],
+        ['121.53394', '31.03913', '16'],
+        ['121.27458', '31.13997', '17'],
+        ['121.40455', '31.24223', '12'],
+        ['121.49016', '31.04024', '19'],
+        ['121.53213', '31.18523', '7'],
+        ['121.40213', '31.22976', '18'],
       ]
     );
     downloadCSV('template_customer.csv', content);
   };
 
   const downloadVehicleTemplate = () => {
+    // Sample vehicle capacities (DepotID removed - will be auto-assigned)
     const content = generateCSV(
-      ['Capacity', 'DepotID'],
+      ['Capacity'],
       [
-        ['100', '0'],
-        ['120', '0'],
-        ['100', '1'],
-        ['150', '1'],
-        ['100', '2'],
+        ['138'],
+        ['128'],
+        ['114'],
+        ['142'],
+        ['107'],
+        ['120'],
+        ['138'],
+        ['118'],
+        ['122'],
+        ['110'],
       ]
     );
     downloadCSV('template_vehicle.csv', content);
@@ -99,9 +114,15 @@ export function TemplateDownload() {
             Template Kendaraan
           </Button>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Template file dalam format CSV. Anda dapat mengedit menggunakan Excel atau aplikasi spreadsheet lainnya.
-        </p>
+        <div className="text-sm text-muted-foreground space-y-1">
+          <p>Template file dalam format CSV dengan contoh data koordinat geografis.</p>
+          <ul className="list-disc list-inside pl-2 space-y-1">
+            <li><strong>Depot:</strong> Kolom Longitude, Latitude</li>
+            <li><strong>Pelanggan:</strong> Kolom Longitude, Latitude, Demand (integer)</li>
+            <li><strong>Kendaraan:</strong> Kolom Capacity (integer)</li>
+          </ul>
+          <p className="text-xs italic mt-2">Note: Depot assignment untuk kendaraan diproses oleh backend.</p>
+        </div>
       </CardContent>
     </Card>
   );

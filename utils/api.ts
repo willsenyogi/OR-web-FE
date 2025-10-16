@@ -168,7 +168,7 @@ export async function runMDVRPSimulation(
 
     console.log('Sending request to backend:', JSON.stringify(requestBody, null, 2));
 
-    const response = await fetch(`${API_BASE_URL}/optimize?run_ilp=False`, {
+    const response = await fetch(`${API_BASE_URL}/mdvrp/solve/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
