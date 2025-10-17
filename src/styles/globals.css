@@ -187,3 +187,14 @@
 html {
   font-size: var(--font-size);
 }
+
+/* Sonner Toast Description Styling */
+.toast-description {
+  color: var(--foreground) !important;
+  opacity: 0.9;
+}
+
+.dark .toast-description {
+  color: var(--foreground) !important;
+  opacity: 0.85;
+}
