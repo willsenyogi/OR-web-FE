@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Navigation } from "./components/Navigation";
 import { HomePage } from "./components/HomePage";
-import { InputPage, MDVRPData } from "./components/InputPage";
+import { InputPage, MDVRPData, AlgorithmParameters } from "./components/InputPage";
 import { ResultsPage } from "./components/ResultsPage";
 import { AboutPage } from "./components/AboutPage";
 import { SolutionResult } from "./utils/mdvrpSolver";
@@ -12,18 +12,17 @@ import { toast } from "sonner";
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('home');
-  // Initialize with dummy data for demo purposes
-  const [inputData, setInputData] = useState<MDVRPData | null>(dummyInputData);
+  const [inputData, setInputData] = useState<MDVRPData | null>(null);
   const [results, setResults] = useState<{
-    pso: SolutionResult;
-    ga: SolutionResult;
-    ilp: SolutionResult;
-  } | null>(dummyResults);
+    pso?: SolutionResult;
+    ga?: SolutionResult;
+    ilp?: SolutionResult;
+  } | null>(null);
   const [backendData, setBackendData] = useState<BackendResponse | null>(null);
 
   const handleRunSimulation = async (
     data: MDVRPData,
-    parameters: { maxIterations: number; populationSize: number }
+    parameters: AlgorithmParameters
   ) => {
     const loadingToast = toast.loading("Mengirim data ke server...", {
       description: "Mohon tunggu, algoritma sedang bekerja"
@@ -43,6 +42,9 @@ export default function App() {
         });
         return;
       }
+      
+      console.log('Transformed results:', response.data);
+      console.log('Backend data:', response.rawBackendData);
       
       setResults(response.data);
       setBackendData(response.rawBackendData || null);

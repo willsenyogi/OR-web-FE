@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { Checkbox } from "./ui/checkbox";
 import { FileUpload } from "./FileUpload";
 import { TemplateDownload } from "./TemplateDownload";
 import { Play, AlertCircle } from "lucide-react";
@@ -21,8 +22,22 @@ export interface MDVRPData {
   vehicles?: Array<{ id: number; capacity: number; depotId?: number }>;
 }
 
+export interface AlgorithmParameters {
+  maxIterations: number;
+  populationSize: number;
+  // PSO hyperparameters
+  pso_c1?: number;
+  pso_c2?: number;
+  pso_w?: number;
+  // GA hyperparameters
+  ga_crossover_prob?: number;
+  ga_mutation_prob?: number;
+  // ILP toggle
+  run_ilp?: boolean;
+}
+
 interface InputPageProps {
-  onRunSimulation: (data: MDVRPData, parameters: { maxIterations: number; populationSize: number }) => void | Promise<void>;
+  onRunSimulation: (data: MDVRPData, parameters: AlgorithmParameters) => void | Promise<void>;
 }
 
 export function InputPage({ onRunSimulation }: InputPageProps) {
@@ -30,8 +45,21 @@ export function InputPage({ onRunSimulation }: InputPageProps) {
   const [customerData, setCustomerData] = useState<any[]>([]);
   const [vehicleData, setVehicleData] = useState<any[]>([]);
   
+  // General parameters
   const [maxIterations, setMaxIterations] = useState(100);
-  const [populationSize, setPopulationSize] = useState(50);
+  const [populationSize, setPopulationSize] = useState(100);
+  
+  // PSO hyperparameters
+  const [psoC1, setPsoC1] = useState(1.5);
+  const [psoC2, setPsoC2] = useState(1.5);
+  const [psoW, setPsoW] = useState(0.8);
+  
+  // GA hyperparameters
+  const [gaCrossoverProb, setGaCrossoverProb] = useState(0.8);
+  const [gaMutationProb, setGaMutationProb] = useState(0.3);
+  
+  // ILP toggle
+  const [runILP, setRunILP] = useState(true);
 
   const handleDepotFileLoaded = (data: any[]) => {
     setDepotData(data);
@@ -101,9 +129,15 @@ export function InputPage({ onRunSimulation }: InputPageProps) {
       vehicles,
     };
 
-    const parameters = {
+    const parameters: AlgorithmParameters = {
       maxIterations,
       populationSize,
+      pso_c1: psoC1,
+      pso_c2: psoC2,
+      pso_w: psoW,
+      ga_crossover_prob: gaCrossoverProb,
+      ga_mutation_prob: gaMutationProb,
+      run_ilp: runILP,
     };
 
     onRunSimulation(mdvrpData, parameters);
@@ -281,31 +315,139 @@ export function InputPage({ onRunSimulation }: InputPageProps) {
                 Konfigurasi untuk algoritma optimasi
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="maxIterations">Iterasi Maksimal</Label>
-                  <Input
-                    id="maxIterations"
-                    type="number"
-                    min="10"
-                    max="1000"
-                    value={maxIterations}
-                    onChange={(e) => setMaxIterations(parseInt(e.target.value))}
-                  />
-                </div>
+            <CardContent className="space-y-6">
+              {/* General Parameters */}
+              <div className="space-y-4">
+                <h4>Parameter Umum</h4>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="maxIterations">Iterasi Maksimal</Label>
+                    <Input
+                      id="maxIterations"
+                      type="number"
+                      min="10"
+                      max="1000"
+                      value={maxIterations}
+                      onChange={(e) => setMaxIterations(parseInt(e.target.value))}
+                      required
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="populationSize">Population Size (GA/PSO)</Label>
-                  <Input
-                    id="populationSize"
-                    type="number"
-                    min="10"
-                    max="200"
-                    value={populationSize}
-                    onChange={(e) => setPopulationSize(parseInt(e.target.value))}
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="populationSize">Population Size (GA/PSO)</Label>
+                    <Input
+                      id="populationSize"
+                      type="number"
+                      min="10"
+                      max="1000"
+                      value={populationSize}
+                      onChange={(e) => setPopulationSize(parseInt(e.target.value))}
+                      required
+                    />
+                  </div>
                 </div>
+              </div>
+
+              {/* PSO Hyperparameters */}
+              <div className="space-y-4">
+                <h4>Hyperparameter PSO</h4>
+                <div className="grid sm:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="psoC1">c1 (Cognitive)</Label>
+                    <Input
+                      id="psoC1"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="5"
+                      value={psoC1}
+                      onChange={(e) => setPsoC1(parseFloat(e.target.value))}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="psoC2">c2 (Social)</Label>
+                    <Input
+                      id="psoC2"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="5"
+                      value={psoC2}
+                      onChange={(e) => setPsoC2(parseFloat(e.target.value))}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="psoW">w (Inertia)</Label>
+                    <Input
+                      id="psoW"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="1"
+                      value={psoW}
+                      onChange={(e) => setPsoW(parseFloat(e.target.value))}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* GA Hyperparameters */}
+              <div className="space-y-4">
+                <h4>Hyperparameter GA</h4>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="gaCrossover">Probabilitas Crossover</Label>
+                    <Input
+                      id="gaCrossover"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="1"
+                      value={gaCrossoverProb}
+                      onChange={(e) => setGaCrossoverProb(parseFloat(e.target.value))}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="gaMutation">Probabilitas Mutation</Label>
+                    <Input
+                      id="gaMutation"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="1"
+                      value={gaMutationProb}
+                      onChange={(e) => setGaMutationProb(parseFloat(e.target.value))}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* ILP Toggle */}
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="runILP" 
+                    checked={runILP}
+                    onCheckedChange={(checked) => setRunILP(checked === true)}
+                  />
+                  <Label 
+                    htmlFor="runILP"
+                    className="cursor-pointer"
+                  >
+                    Jalankan ILP?
+                  </Label>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  ILP memerlukan waktu lebih lama untuk dataset besar
+                </p>
               </div>
             </CardContent>
           </Card>

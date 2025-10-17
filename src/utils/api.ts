@@ -16,17 +16,17 @@ interface BackendAlgorithmResult {
 }
 
 export interface BackendResponse {
-  pso: BackendAlgorithmResult;
-  ga: BackendAlgorithmResult;
-  ilp: BackendAlgorithmResult;
+  pso?: BackendAlgorithmResult;
+  ga?: BackendAlgorithmResult;
+  ilp?: BackendAlgorithmResult;
 }
 
 export interface APIResponse {
   success: boolean;
   data?: {
-    pso: SolutionResult;
-    ga: SolutionResult;
-    ilp: SolutionResult;
+    pso?: SolutionResult;
+    ga?: SolutionResult;
+    ilp?: SolutionResult;
   };
   rawBackendData?: BackendResponse;  // Keep original backend data
   error?: string;
@@ -37,11 +37,17 @@ export interface SimulationRequest {
   depots: number[][];  // [[longitude, latitude], ...]
   customers: number[][];  // [[longitude, latitude], ...]
   vehicle_per_depot: number[];  // [vehicles_count_depot_0, vehicles_count_depot_1, ...]
-  vehichle_capacities: number[];  // [capacity1, capacity2, ...] - Note: typo 'vehichle' matches backend
+  vehicle_capacities: number[];  // [capacity1, capacity2, ...]
   customer_demands: number[];  // [demand1, demand2, ...]
   parameters?: {
     maxIterations?: number;
     populationSize?: number;
+    pso_c1?: number;
+    pso_c2?: number;
+    pso_w?: number;
+    ga_crossover_prob?: number;
+    ga_mutation_prob?: number;
+    run_ilp?: boolean;
   };
 }
 
@@ -137,7 +143,16 @@ function transformBackendResult(
  */
 export async function runMDVRPSimulation(
   data: MDVRPData,
-  parameters?: { maxIterations?: number; populationSize?: number }
+  parameters?: {
+    maxIterations?: number;
+    populationSize?: number;
+    pso_c1?: number;
+    pso_c2?: number;
+    pso_w?: number;
+    ga_crossover_prob?: number;
+    ga_mutation_prob?: number;
+    run_ilp?: boolean;
+  }
 ): Promise<APIResponse> {
   try {
     // Transform data ke format yang diharapkan backend
@@ -145,7 +160,7 @@ export async function runMDVRPSimulation(
     const depots = data.depots.map(d => [d.x, d.y]);
     const customers = data.customers.map(c => [c.x, c.y]);
     const customer_demands = data.customers.map(c => c.demand);
-    const vehichle_capacities = (data.vehicles || []).map(v => v.capacity);
+    const vehicle_capacities = (data.vehicles || []).map(v => v.capacity);
     
     // Calculate vehicle_per_depot - distribusi merata (round-robin)
     const numDepots = data.numDepots;
@@ -161,14 +176,14 @@ export async function runMDVRPSimulation(
       depots,
       customers,
       vehicle_per_depot,
-      vehichle_capacities,  // Note: typo 'vehichle' matches backend expectation
+      vehicle_capacities,
       customer_demands,
       parameters: parameters || {},
     };
 
     console.log('Sending request to backend:', JSON.stringify(requestBody, null, 2));
 
-    const response = await fetch(`${API_BASE_URL}/optimize?run_ilp=False`, {
+    const response = await fetch(`${API_BASE_URL}/optimize`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -183,16 +198,30 @@ export async function runMDVRPSimulation(
       );
     }
 
-    const backendData: BackendResponse = await response.json();
+    const responseJson = await response.json();
     
-    console.log('Received backend response:', JSON.stringify(backendData, null, 2));
+    console.log('Received backend response:', JSON.stringify(responseJson, null, 2));
     
-    // Transform backend results to frontend format
-    const transformedData = {
-      pso: transformBackendResult(backendData.pso, 'PSO', data),
-      ga: transformBackendResult(backendData.ga, 'GA', data),
-      ilp: transformBackendResult(backendData.ilp, 'ILP', data),
-    };
+    // Handle different response structures - backend may wrap data in a "data" field or return directly
+    const backendData: BackendResponse = responseJson.data || responseJson;
+    
+    // Transform backend results to frontend format - only transform what exists
+    const transformedData: any = {};
+    
+    if (backendData.pso) {
+      transformedData.pso = transformBackendResult(backendData.pso, 'PSO', data);
+    }
+    if (backendData.ga) {
+      transformedData.ga = transformBackendResult(backendData.ga, 'GA', data);
+    }
+    if (backendData.ilp) {
+      transformedData.ilp = transformBackendResult(backendData.ilp, 'ILP', data);
+    }
+    
+    // Check if at least one algorithm returned results
+    if (!transformedData.pso && !transformedData.ga && !transformedData.ilp) {
+      throw new Error('Backend tidak mengembalikan hasil algoritma apapun');
+    }
     
     return {
       success: true,
