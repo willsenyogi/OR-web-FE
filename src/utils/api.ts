@@ -230,6 +230,13 @@ export async function runMDVRPSimulation(
     };
   } catch (error) {
     console.error('API Error:', error);
+
+    if (error = 'Memory Error'){
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Ukuran data terlalu besar untuk menjalankan ILP. Silakan coba dengan data yang lebih kecil.',
+      };
+    }
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Terjadi kesalahan saat menghubungi server',
