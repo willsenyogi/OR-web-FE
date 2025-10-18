@@ -28,7 +28,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Algoritma berbasis swarm intelligence yang terinspirasi dari perilaku kawanan burung atau ikan.
+                Algoritma berbasis swarm yang terinspirasi dari perilaku kawanan burung atau ikan.
               </p>
             </CardContent>
           </Card>
@@ -71,7 +71,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
           <CardContent>
             <p className="mb-4">
               Multi-Depot Vehicle Routing Problem (MDVRP) adalah pengembangan dari VRP klasik di mana 
-              terdapat beberapa depot dan kendaraan harus melayani pelanggan dengan jarak dan biaya minimal.
+              terdapat beberapa depot dan kendaraan harus melayani pelanggan dengan jarak minimal.
             </p>
             <p className="mb-6">
               Aplikasi ini memungkinkan Anda untuk membandingkan performa tiga algoritma optimasi 
