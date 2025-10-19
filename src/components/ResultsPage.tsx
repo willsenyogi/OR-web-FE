@@ -97,7 +97,14 @@ export function ResultsPage({ results, inputData, backendData, onNavigate }: Res
   }
 
   // Use backend data if available, otherwise use frontend calculated
+  // Order: ILP first, then PSO, then GA
   const comparisonData = [
+    ...(results.ilp ? [{ 
+      name: 'ILP', 
+      distance: backendData?.ilp?.best_value ?? results.ilp.totalDistance, 
+      time: backendData?.ilp?.time ? backendData.ilp.time * 1000 : results.ilp.executionTime, 
+      routes: results.ilp.routes.length 
+    }] : []),
     ...(results.pso ? [{ 
       name: 'PSO', 
       distance: backendData?.pso?.best_value ?? results.pso.totalDistance, 
@@ -110,35 +117,47 @@ export function ResultsPage({ results, inputData, backendData, onNavigate }: Res
       time: backendData?.ga?.time ? backendData.ga.time * 1000 : results.ga.executionTime, 
       routes: results.ga.routes.length 
     }] : []),
-    ...(results.ilp ? [{ 
-      name: 'ILP', 
-      distance: backendData?.ilp?.best_value ?? results.ilp.totalDistance, 
-      time: backendData?.ilp?.time ? backendData.ilp.time * 1000 : results.ilp.executionTime, 
-      routes: results.ilp.routes.length 
-    }] : []),
   ];
 
-  // Find best algorithm
-  const bestByDistance = [...comparisonData].sort((a, b) => a.distance - b.distance)[0];
-  const bestByTime = [...comparisonData].sort((a, b) => a.time - b.time)[0];
+  // Find best algorithm - ILP gets priority if distances are equal
+  const bestByDistance = [...comparisonData].sort((a, b) => {
+    const diff = a.distance - b.distance;
+    if (diff === 0) {
+      // If equal, prioritize ILP
+      if (a.name === 'ILP') return -1;
+      if (b.name === 'ILP') return 1;
+      return 0;
+    }
+    return diff;
+  })[0];
+  const bestByTime = [...comparisonData].sort((a, b) => {
+    const diff = a.time - b.time;
+    if (diff === 0) {
+      // If equal, prioritize ILP
+      if (a.name === 'ILP') return -1;
+      if (b.name === 'ILP') return 1;
+      return 0;
+    }
+    return diff;
+  })[0];
 
-  // Convergence data - combine all algorithms
+  // Convergence data - combine all algorithms (order: ILP, PSO, GA)
   const maxLength = Math.max(
+    results.ilp?.convergenceData.length || 0,
     results.pso?.convergenceData.length || 0,
-    results.ga?.convergenceData.length || 0,
-    results.ilp?.convergenceData.length || 0
+    results.ga?.convergenceData.length || 0
   );
 
   const convergenceComparison = Array.from({ length: maxLength }, (_, i) => {
     const dataPoint: any = { iteration: i };
+    if (results.ilp) {
+      dataPoint.ILP = results.ilp.convergenceData[i]?.fitness || results.ilp.convergenceData[results.ilp.convergenceData.length - 1]?.fitness;
+    }
     if (results.pso) {
       dataPoint.PSO = results.pso.convergenceData[i]?.fitness || results.pso.convergenceData[results.pso.convergenceData.length - 1]?.fitness;
     }
     if (results.ga) {
       dataPoint.GA = results.ga.convergenceData[i]?.fitness || results.ga.convergenceData[results.ga.convergenceData.length - 1]?.fitness;
-    }
-    if (results.ilp) {
-      dataPoint.ILP = results.ilp.convergenceData[i]?.fitness || results.ilp.convergenceData[results.ilp.convergenceData.length - 1]?.fitness;
     }
     return dataPoint;
   });
@@ -193,7 +212,7 @@ export function ResultsPage({ results, inputData, backendData, onNavigate }: Res
               <div className="flex items-center gap-2">
                 <Route className="w-5 h-5 text-green-500" />
                 <div>
-                  <div>{results.pso?.routes.length || results.ga?.routes.length || results.ilp?.routes.length || 0}</div>
+                  <div>{results.ilp?.routes.length || results.pso?.routes.length || results.ga?.routes.length || 0}</div>
                   <p className="text-muted-foreground">Rute total</p>
                 </div>
               </div>
@@ -271,12 +290,26 @@ export function ResultsPage({ results, inputData, backendData, onNavigate }: Res
         {/* Route Visualization Maps - Use Plotly if available, else fallback to SVG */}
         <div className="mb-8">
           <h2 className="mb-4">Plot Map Pembagian Rute</h2>
-          <Tabs defaultValue={results.pso ? "pso" : results.ga ? "ga" : "ilp"} className="w-full">
+          <Tabs defaultValue={results.ilp ? "ilp" : results.pso ? "pso" : "ga"} className="w-full">
             <TabsList className="grid w-full grid-cols-3">
+              {results.ilp && <TabsTrigger value="ilp">ILP</TabsTrigger>}
               {results.pso && <TabsTrigger value="pso">PSO</TabsTrigger>}
               {results.ga && <TabsTrigger value="ga">GA</TabsTrigger>}
-              {results.ilp && <TabsTrigger value="ilp">ILP</TabsTrigger>}
             </TabsList>
+            {results.ilp && (
+              <TabsContent value="ilp">
+                {(backendData?.ilp?.plot || results.ilp.plotlyMap) ? (
+                  <PlotlyRouteMap 
+                    plotData={backendData?.ilp?.plot || results.ilp.plotlyMap} 
+                    algorithmName="ILP"
+                    totalDistance={backendData?.ilp?.best_value || results.ilp.totalDistance}
+                    executionTime={backendData?.ilp?.time ? backendData.ilp.time * 1000 : results.ilp.executionTime}
+                  />
+                ) : (
+                  <RouteMap data={inputData} result={results.ilp} algorithmName="ILP" />
+                )}
+              </TabsContent>
+            )}
             {results.pso && (
               <TabsContent value="pso">
                 {(backendData?.pso?.plot || results.pso.plotlyMap) ? (
@@ -302,20 +335,6 @@ export function ResultsPage({ results, inputData, backendData, onNavigate }: Res
                   />
                 ) : (
                   <RouteMap data={inputData} result={results.ga} algorithmName="GA" />
-                )}
-              </TabsContent>
-            )}
-            {results.ilp && (
-              <TabsContent value="ilp">
-                {(backendData?.ilp?.plot || results.ilp.plotlyMap) ? (
-                  <PlotlyRouteMap 
-                    plotData={backendData?.ilp?.plot || results.ilp.plotlyMap} 
-                    algorithmName="ILP"
-                    totalDistance={backendData?.ilp?.best_value || results.ilp.totalDistance}
-                    executionTime={backendData?.ilp?.time ? backendData.ilp.time * 1000 : results.ilp.executionTime}
-                  />
-                ) : (
-                  <RouteMap data={inputData} result={results.ilp} algorithmName="ILP" />
                 )}
               </TabsContent>
             )}
@@ -375,9 +394,9 @@ export function ResultsPage({ results, inputData, backendData, onNavigate }: Res
                 <YAxis label={{ value: 'Fitness (Total Jarak)', angle: -90, position: 'insideLeft' }} />
                 <Tooltip />
                 <Legend />
+                {results.ilp && <Line type="monotone" dataKey="ILP" stroke="#22c55e" strokeWidth={2} />}
                 {results.pso && <Line type="monotone" dataKey="PSO" stroke="#ef4444" strokeWidth={2} />}
                 {results.ga && <Line type="monotone" dataKey="GA" stroke="#3b82f6" strokeWidth={2} />}
-                {results.ilp && <Line type="monotone" dataKey="ILP" stroke="#22c55e" strokeWidth={2} />}
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -390,12 +409,17 @@ export function ResultsPage({ results, inputData, backendData, onNavigate }: Res
             <CardDescription>Rute kendaraan dari setiap algoritma</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue={results.pso ? "pso" : results.ga ? "ga" : "ilp"}>
+            <Tabs defaultValue={results.ilp ? "ilp" : results.pso ? "pso" : "ga"}>
               <TabsList className="grid w-full grid-cols-3">
+                {results.ilp && <TabsTrigger value="ilp">ILP</TabsTrigger>}
                 {results.pso && <TabsTrigger value="pso">PSO</TabsTrigger>}
                 {results.ga && <TabsTrigger value="ga">GA</TabsTrigger>}
-                {results.ilp && <TabsTrigger value="ilp">ILP</TabsTrigger>}
               </TabsList>
+              {results.ilp && (
+                <TabsContent value="ilp">
+                  <RouteTable routes={results.ilp.routes} />
+                </TabsContent>
+              )}
               {results.pso && (
                 <TabsContent value="pso">
                   <RouteTable routes={results.pso.routes} />
@@ -404,11 +428,6 @@ export function ResultsPage({ results, inputData, backendData, onNavigate }: Res
               {results.ga && (
                 <TabsContent value="ga">
                   <RouteTable routes={results.ga.routes} />
-                </TabsContent>
-              )}
-              {results.ilp && (
-                <TabsContent value="ilp">
-                  <RouteTable routes={results.ilp.routes} />
                 </TabsContent>
               )}
             </Tabs>
