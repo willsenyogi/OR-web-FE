@@ -190,11 +190,11 @@ html {
 
 /* Sonner Toast Description Styling */
 .toast-description {
-  color: var(--foreground) !important;
-  opacity: 0.9;
+  color: var(--popover-foreground) !important;
+  opacity: 0.95;
 }
 
 .dark .toast-description {
-  color: var(--foreground) !important;
-  opacity: 0.85;
+  color: var(--popover-foreground) !important;
+  opacity: 0.9;
 }
