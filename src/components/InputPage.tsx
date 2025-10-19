@@ -86,6 +86,17 @@ export function InputPage({ onRunSimulation }: InputPageProps) {
       toast.error('Harap upload file data kendaraan');
       return false;
     }
+
+    const totalDemand = customerData.reduce((sum, row) => sum + parseFloat(row.Demand), 0);
+    const totalCapacity = vehicleData.reduce((sum, row) => sum + parseFloat(row.Capacity), 0);
+    
+    if (totalDemand > totalCapacity) {
+      toast.error('Kapasitas kendaraan tidak mencukupi', {
+        description: `Total demand (${totalDemand.toFixed(2)}) melebihi total kapasitas kendaraan (${totalCapacity.toFixed(2)})`
+      });
+      return false;
+    }
+
     return true;
   };
 

@@ -49,10 +49,18 @@ export default function App() {
       setResults(response.data);
       setBackendData(response.rawBackendData || null);
       
-      toast.success("Simulasi selesai!", {
-        id: loadingToast,
-        description: "Hasil perhitungan PSO, GA, dan ILP berhasil didapatkan"
-      });
+      // Check if there are any warnings about failed algorithms
+      if (response.message) {
+        toast.warning("Simulasi selesai dengan peringatan", {
+          id: loadingToast,
+          description: response.message
+        });
+      } else {
+        toast.success("Simulasi selesai!", {
+          id: loadingToast,
+          description: "Hasil perhitungan berhasil didapatkan untuk semua algoritma"
+        });
+      }
       
       setCurrentPage('results');
     } catch (error) {

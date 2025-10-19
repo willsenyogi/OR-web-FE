@@ -54,8 +54,36 @@ export interface SimulationRequest {
 /**
  * Calculate Euclidean distance
  */
-function calculateDistance(x1: number, y1: number, x2: number, y2: number): number {
-  return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+function calculateDistance(lon1: number, lat1: number, lon2: number, lat2: number): number {
+  const R = 6371; // Earth's radius in kilometers
+  
+  // Convert degrees to radians
+  const toRad = (deg: number) => deg * Math.PI / 180;
+  
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  
+  return R * c;
+}
+
+
+function isValidBackendResult(backendResult: BackendAlgorithmResult): boolean {
+  if (backendResult.plot && Object.keys(backendResult.plot).length === 0) {
+    return false;
+  }
+  
+  if (!backendResult.best_assignment || backendResult.best_assignment.length === 0) {
+    return false;
+  }
+  
+  return true;
 }
 
 /**
@@ -156,7 +184,6 @@ export async function runMDVRPSimulation(
 ): Promise<APIResponse> {
   try {
     // Transform data ke format yang diharapkan backend
-    // Backend expects: [[lon, lat], ...] bukan [{x, y}, ...]
     const depots = data.depots.map(d => [d.x, d.y]);
     const customers = data.customers.map(c => [c.x, c.y]);
     const customer_demands = data.customers.map(c => c.demand);
@@ -207,15 +234,31 @@ export async function runMDVRPSimulation(
     
     // Transform backend results to frontend format - only transform what exists
     const transformedData: any = {};
+    const failedAlgorithms: string[] = [];
     
     if (backendData.pso) {
-      transformedData.pso = transformBackendResult(backendData.pso, 'PSO', data);
+      if (isValidBackendResult(backendData.pso)) {
+        transformedData.pso = transformBackendResult(backendData.pso, 'PSO', data);
+      } else {
+        failedAlgorithms.push('PSO');
+        console.warn('PSO algorithm did not produce valid routes');
+      }
     }
     if (backendData.ga) {
-      transformedData.ga = transformBackendResult(backendData.ga, 'GA', data);
+      if (isValidBackendResult(backendData.ga)) {
+        transformedData.ga = transformBackendResult(backendData.ga, 'GA', data);
+      } else {
+        failedAlgorithms.push('GA');
+        console.warn('GA algorithm did not produce valid routes');
+      }
     }
     if (backendData.ilp) {
-      transformedData.ilp = transformBackendResult(backendData.ilp, 'ILP', data);
+      if (isValidBackendResult(backendData.ilp)) {
+        transformedData.ilp = transformBackendResult(backendData.ilp, 'ILP', data);
+      } else {
+        failedAlgorithms.push('ILP');
+        console.warn('ILP algorithm did not produce valid routes');
+      }
     }
     
     // Check if at least one algorithm returned results
@@ -227,6 +270,7 @@ export async function runMDVRPSimulation(
       success: true,
       data: transformedData,
       rawBackendData: backendData,  // Keep original backend data for Plotly plots
+      message: failedAlgorithms.length > 0 ? `Algoritma ${failedAlgorithms.join(', ')} gagal menghasilkan rute` : undefined,
     };
   } catch (error) {
     console.error('API Error:', error);
