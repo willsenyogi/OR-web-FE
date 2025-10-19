@@ -59,25 +59,44 @@ export function FileUpload({ onFileLoaded, fileType, label, description }: FileU
 
     const firstRow = data[0];
     
+    // Check required columns based on file type
+    let requiredColumns: string[] = [];
     switch (fileType) {
       case 'depot':
+        requiredColumns = ['Longitude', 'Latitude'];
         if (!('Longitude' in firstRow && 'Latitude' in firstRow)) {
           toast.error('File depot harus memiliki kolom Longitude dan Latitude');
           return false;
         }
         break;
       case 'customer':
+        requiredColumns = ['Longitude', 'Latitude', 'Demand'];
         if (!('Longitude' in firstRow && 'Latitude' in firstRow && 'Demand' in firstRow)) {
           toast.error('File pelanggan harus memiliki kolom Longitude, Latitude, dan Demand');
           return false;
         }
         break;
       case 'vehicle':
+        requiredColumns = ['Capacity'];
         if (!('Capacity' in firstRow)) {
           toast.error('File kendaraan harus memiliki kolom Capacity');
           return false;
         }
         break;
+    }
+    
+    // Check for empty cells in required columns
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      for (const col of requiredColumns) {
+        const value = row[col];
+        if (value === undefined || value === null || value === '' || (typeof value === 'string' && value.trim() === '')) {
+          toast.error(`Baris kosong ditemukan`, {
+            description: `Baris ${i + 1} memiliki kolom "${col}" yang kosong. Silakan periksa kembali file Anda.`
+          });
+          return false;
+        }
+      }
     }
     
     return true;
