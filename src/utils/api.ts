@@ -1,18 +1,18 @@
 import { MDVRPData } from "../components/InputPage";
 import { SolutionResult } from "./mdvrpSolver";
 
-// API Configuration - Ganti dengan URL backend Django Anda
+
 const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) 
   ? import.meta.env.VITE_API_URL 
   : 'http://localhost:8000/api';
 
-// Backend response format dari Django
 interface BackendAlgorithmResult {
-  best_assignment: number[];  // customer index -> vehicle index mapping
-  best_value: number;         // total distance/fitness
-  time: number;               // execution time in seconds
-  history: number[];          // fitness history per iteration
-  plot?: any;                 // Plotly JSON for route map visualization
+  best_assignment: number[];
+  best_value: number;
+  time: number;
+  history: number[];
+  plot?: any;
+  vehicle_depot_map?: number[];
 }
 
 export interface BackendResponse {
@@ -28,17 +28,17 @@ export interface APIResponse {
     ga?: SolutionResult;
     ilp?: SolutionResult;
   };
-  rawBackendData?: BackendResponse;  // Keep original backend data
+  rawBackendData?: BackendResponse;
   error?: string;
   message?: string;
 }
 
 export interface SimulationRequest {
-  depots: number[][];  // [[longitude, latitude], ...]
-  customers: number[][];  // [[longitude, latitude], ...]
-  vehicle_per_depot: number[];  // [vehicles_count_depot_0, vehicles_count_depot_1, ...]
-  vehicle_capacities: number[];  // [capacity1, capacity2, ...]
-  customer_demands: number[];  // [demand1, demand2, ...]
+  depots: number[][];
+  customers: number[][];
+  vehicle_per_depot: number[];
+  vehicle_capacities: number[];
+  customer_demands: number[];
   parameters?: {
     maxIterations?: number;
     populationSize?: number;
@@ -52,14 +52,11 @@ export interface SimulationRequest {
 }
 
 /**
- * Calculate Euclidean distance
+ * Calculate Haversine distance
  */
 function calculateDistance(lon1: number, lat1: number, lon2: number, lat2: number): number {
   const R = 6371; // Earth's radius in kilometers
-  
-  // Convert degrees to radians
   const toRad = (deg: number) => deg * Math.PI / 180;
-  
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   
@@ -69,20 +66,22 @@ function calculateDistance(lon1: number, lat1: number, lon2: number, lat2: numbe
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
   
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  
   return R * c;
 }
 
+// Helper untuk mengambil koordinat (agar lebih mudah dibaca)
+type Location = { x: number; y: number };
+function getCoords(loc: Location): [number, number] {
+    return [loc.x, loc.y];
+}
 
 function isValidBackendResult(backendResult: BackendAlgorithmResult): boolean {
   if (backendResult.plot && Object.keys(backendResult.plot).length === 0) {
     return false;
   }
-  
   if (!backendResult.best_assignment || backendResult.best_assignment.length === 0) {
     return false;
   }
-  
   return true;
 }
 
@@ -111,36 +110,44 @@ function transformBackendResult(
 
     // Determine depot for this vehicle
     let depotIdx = 0;
-    if (data.vehicles && data.vehicles[vehicleIdx]) {
-      depotIdx = data.vehicles[vehicleIdx].depotId || 0;
+    if (backendResult.vehicle_depot_map && backendResult.vehicle_depot_map[vehicleIdx] !== undefined) {
+      depotIdx = backendResult.vehicle_depot_map[vehicleIdx];
     }
-
     const depot = data.depots[depotIdx];
     
-    // Calculate route distance
-    let routeDistance = 0;
     
-    if (customerIndices.length > 0) {
-      // Distance from depot to first customer
-      const firstCustomer = data.customers[customerIndices[0]];
-      routeDistance += calculateDistance(depot.x, depot.y, firstCustomer.x, firstCustomer.y);
-      
-      // Distance between consecutive customers
-      for (let i = 0; i < customerIndices.length - 1; i++) {
-        const c1 = data.customers[customerIndices[i]];
-        const c2 = data.customers[customerIndices[i + 1]];
-        routeDistance += calculateDistance(c1.x, c1.y, c2.x, c2.y);
+    let routeDistance = 0;
+    const orderedRoute: number[] = [];
+    
+    const unvisited = new Set(customerIndices);
+    let currentLocation: Location = depot;
+
+    while (unvisited.size > 0) {
+      let nearestDist = Infinity;
+      let nearestCustIdx = -1;
+
+      for (const custIdx of unvisited) {
+        const customer = data.customers[custIdx];
+        const dist = calculateDistance(...getCoords(currentLocation), ...getCoords(customer));
+        
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearestCustIdx = custIdx;
+        }
       }
-      
-      // Distance from last customer back to depot
-      const lastCustomer = data.customers[customerIndices[customerIndices.length - 1]];
-      routeDistance += calculateDistance(lastCustomer.x, lastCustomer.y, depot.x, depot.y);
+
+      routeDistance += nearestDist;
+      orderedRoute.push(nearestCustIdx);
+      currentLocation = data.customers[nearestCustIdx];
+      unvisited.delete(nearestCustIdx);
     }
+    
+    routeDistance += calculateDistance(...getCoords(currentLocation), ...getCoords(depot));
 
     return {
       depot: depotIdx,
       vehicle: vehicleIdx,
-      customers: customerIndices,
+      customers: orderedRoute,
       distance: routeDistance,
     };
   }).filter(route => route !== null) as Array<{
@@ -166,9 +173,7 @@ function transformBackendResult(
   };
 }
 
-/**
- * Menjalankan simulasi MDVRP dengan memanggil backend Django
- */
+
 export async function runMDVRPSimulation(
   data: MDVRPData,
   parameters?: {
@@ -275,10 +280,10 @@ export async function runMDVRPSimulation(
   } catch (error) {
     console.error('API Error:', error);
 
-    if (error = 'Memory Error'){
+    if (error instanceof Error && error.message.includes('Memory Error')) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Ukuran data terlalu besar untuk menjalankan ILP. Silakan coba dengan data yang lebih kecil.',
+        error: 'Ukuran data terlalu besar untuk menjalankan ILP. Silakan coba dengan data yang lebih kecil.',
       };
     }
     return {
