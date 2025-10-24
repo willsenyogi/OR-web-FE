@@ -52,7 +52,6 @@ export function TemplateDownload() {
   };
 
   const downloadVehicleTemplate = () => {
-    // Sample vehicle capacities (DepotID removed - will be auto-assigned)
     downloadXLSX(
       'template_vehicle.xlsx',
       ['Capacity'],

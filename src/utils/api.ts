@@ -13,6 +13,12 @@ interface BackendAlgorithmResult {
   history: number[];
   plot?: any;
   vehicle_depot_map?: number[];
+  best_routes_ilp?: {
+    [vehicleIdx: number]: {
+      route: number[];
+      dist: number;
+    }
+  };
 }
 
 export interface BackendResponse {
@@ -23,36 +29,7 @@ export interface BackendResponse {
 
 export interface APIResponse {
   success: boolean;
-  data?: {
-    pso?: SolutionResult;
-    ga?: SolutionResult;
-    ilp?: SolutionResult;
-  };
-  rawBackendData?: BackendResponse;
-  error?: string;
-  message?: string;
-}
-
-export interface SimulationRequest {
-  depots: number[][];
-  customers: number[][];
-  vehicle_per_depot: number[];
-  vehicle_capacities: number[];
-  customer_demands: number[];
-  parameters?: {
-    maxIterations?: number;
-    populationSize?: number;
-    pso_c1?: number;
-    pso_c2?: number;
-    pso_w?: number;
-    ga_crossover_prob?: number;
-    ga_mutation_prob?: number;
-    run_ilp?: boolean;
-  };
-}
-
-/**
- * Calculate Haversine distance
+  data?: {// Haversine distance
  */
 function calculateDistance(lon1: number, lat1: number, lon2: number, lat2: number): number {
   const R = 6371; // Earth's radius in kilometers
@@ -69,7 +46,7 @@ function calculateDistance(lon1: number, lat1: number, lon2: number, lat2: numbe
   return R * c;
 }
 
-// Helper untuk mengambil koordinat (agar lebih mudah dibaca)
+// Helper untuk mengambil koordinat
 type Location = { x: number; y: number };
 function getCoords(loc: Location): [number, number] {
     return [loc.x, loc.y];
@@ -93,13 +70,18 @@ function transformBackendResult(
   algorithmName: string,
   data: MDVRPData
 ): SolutionResult {
+  // Ambil data rute ILP jika ada
+  const ilpRoutesMap = backendResult.best_routes_ilp;
+
   // Group customers by vehicle
   const vehicleGroups: Map<number, number[]> = new Map();
   backendResult.best_assignment.forEach((vehicleIdx, customerIdx) => {
-    if (!vehicleGroups.has(vehicleIdx)) {
+    if (vehicleIdx !== -1) { 
+      if (!vehicleGroups.has(vehicleIdx)) {
       vehicleGroups.set(vehicleIdx, []);
+      }
+      vehicleGroups.get(vehicleIdx)!.push(customerIdx);
     }
-    vehicleGroups.get(vehicleIdx)!.push(customerIdx);
   });
 
   // Build routes with distances
@@ -117,33 +99,39 @@ function transformBackendResult(
     
     
     let routeDistance = 0;
-    const orderedRoute: number[] = [];
-    
-    const unvisited = new Set(customerIndices);
-    let currentLocation: Location = depot;
+    let orderedRoute: number[] = [];
 
-    while (unvisited.size > 0) {
-      let nearestDist = Infinity;
-      let nearestCustIdx = -1;
+     // --- Logika Kondisional untuk ILP ---
+    if (ilpRoutesMap && ilpRoutesMap[vehicleIdx]) {
+      const ilpRouteData = ilpRoutesMap[vehicleIdx];
+      orderedRoute = ilpRouteData.route; 
+      routeDistance = ilpRouteData.dist;
+    } else { // --- Logika Kondisional untuk PSO/GA ---
+      const unvisited = new Set(customerIndices);
+      let currentLocation: Location = depot;
 
-      for (const custIdx of unvisited) {
-        const customer = data.customers[custIdx];
-        const dist = calculateDistance(...getCoords(currentLocation), ...getCoords(customer));
-        
-        if (dist < nearestDist) {
-          nearestDist = dist;
-          nearestCustIdx = custIdx;
+      while (unvisited.size > 0) {
+        let nearestDist = Infinity;
+        let nearestCustIdx = -1;
+
+        for (const custIdx of unvisited) {
+          const customer = data.customers[custIdx];
+          const dist = calculateDistance(...getCoords(currentLocation), ...getCoords(customer));
+          
+          if (dist < nearestDist) {
+            nearestDist = dist;
+            nearestCustIdx = custIdx;
+          }
         }
+
+        routeDistance += nearestDist;
+        orderedRoute.push(nearestCustIdx);
+        currentLocation = data.customers[nearestCustIdx];
+        unvisited.delete(nearestCustIdx);
       }
-
-      routeDistance += nearestDist;
-      orderedRoute.push(nearestCustIdx);
-      currentLocation = data.customers[nearestCustIdx];
-      unvisited.delete(nearestCustIdx);
+      
+      routeDistance += calculateDistance(...getCoords(currentLocation), ...getCoords(depot));
     }
-    
-    routeDistance += calculateDistance(...getCoords(currentLocation), ...getCoords(depot));
-
     return {
       depot: depotIdx,
       vehicle: vehicleIdx,
@@ -166,10 +154,10 @@ function transformBackendResult(
   return {
     algorithm: algorithmName,
     totalDistance: backendResult.best_value,
-    executionTime: backendResult.time * 1000, // Convert seconds to milliseconds
+    executionTime: backendResult.time * 1000, // Konversi seconds to milliseconds
     routes,
     convergenceData,
-    plotlyMap: backendResult.plot, // Include Plotly JSON if available
+    plotlyMap: backendResult.plot, // JSON Plotly
   };
 }
 
@@ -194,7 +182,6 @@ export async function runMDVRPSimulation(
     const customer_demands = data.customers.map(c => c.demand);
     const vehicle_capacities = (data.vehicles || []).map(v => v.capacity);
     
-    // Calculate vehicle_per_depot - distribusi merata (round-robin)
     const numDepots = data.numDepots;
     const numVehicles = (data.vehicles || []).length;
     const vehicle_per_depot: number[] = new Array(numDepots).fill(0);
@@ -234,10 +221,9 @@ export async function runMDVRPSimulation(
     
     console.log('Received backend response:', JSON.stringify(responseJson, null, 2));
     
-    // Handle different response structures - backend may wrap data in a "data" field or return directly
     const backendData: BackendResponse = responseJson.data || responseJson;
     
-    // Transform backend results to frontend format - only transform what exists
+    // Transform hasil backend ke format frontend
     const transformedData: any = {};
     const failedAlgorithms: string[] = [];
     
@@ -266,7 +252,6 @@ export async function runMDVRPSimulation(
       }
     }
     
-    // Check if at least one algorithm returned results
     if (!transformedData.pso && !transformedData.ga && !transformedData.ilp) {
       throw new Error('Backend tidak mengembalikan hasil algoritma apapun');
     }
