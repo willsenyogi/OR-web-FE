@@ -29,8 +29,35 @@ export interface BackendResponse {
 
 export interface APIResponse {
   success: boolean;
-  data?: {// Haversine distance
- */
+  data?: {
+    pso?: SolutionResult;
+    ga?: SolutionResult;
+    ilp?: SolutionResult;
+  };
+  rawBackendData?: BackendResponse;
+  error?: string;
+  message?: string;
+}
+
+export interface SimulationRequest {
+  depots: number[][];
+  customers: number[][];
+  vehicle_per_depot: number[];
+  vehicle_capacities: number[];
+  customer_demands: number[];
+  parameters?: {
+    maxIterations?: number;
+    populationSize?: number;
+    pso_c1?: number;
+    pso_c2?: number;
+    pso_w?: number;
+    ga_crossover_prob?: number;
+    ga_mutation_prob?: number;
+    run_ilp?: boolean;
+  };
+}
+
+// Haversine distance
 function calculateDistance(lon1: number, lat1: number, lon2: number, lat2: number): number {
   const R = 6371; // Earth's radius in kilometers
   const toRad = (deg: number) => deg * Math.PI / 180;
