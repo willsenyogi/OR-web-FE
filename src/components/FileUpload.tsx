@@ -90,7 +90,11 @@ export function FileUpload({ onFileLoaded, fileType, label, description }: FileU
       const row = data[i];
       for (const col of requiredColumns) {
         const value = row[col];
-        if (value === undefined || value === null || value === '' || (typeof value === 'string' && value.trim() === '')) {
+        if (
+          value == null || // menangani undefined & null
+          (typeof value === 'number' && isNaN(value)) || // menangani NaN
+          (typeof value === 'string' && value.trim() === '')
+        ) {
           toast.error(`Baris kosong ditemukan`, {
             description: `Baris ${i + 1} memiliki kolom "${col}" yang kosong. Silakan periksa kembali file Anda.`
           });
@@ -134,6 +138,9 @@ export function FileUpload({ onFileLoaded, fileType, label, description }: FileU
       toast.error('Gagal membaca file. Pastikan format file benar.');
       setFileName(null);
     } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
       setIsLoading(false);
     }
   };
