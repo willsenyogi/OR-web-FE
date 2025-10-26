@@ -28,7 +28,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Algoritma berbasis swarm yang terinspirasi dari perilaku kawanan burung atau ikan.
+                Algoritma berbasis swarm yang terinspirasi dari perilaku sekelompok burung.
               </p>
             </CardContent>
           </Card>
@@ -58,7 +58,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Metode matematis untuk mencari solusi optimal dengan variabel bilangan bulat.
+                Metode matematis untuk mencari solusi optimal dengan variabel bilangan biner.
               </p>
             </CardContent>
           </Card>

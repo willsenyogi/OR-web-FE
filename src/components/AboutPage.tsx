@@ -33,7 +33,7 @@ export function AboutPage() {
             </p>
             <p>
               Tujuan dari MDVRP adalah menemukan rute optimal untuk semua kendaraan dari berbagai depot 
-              sehingga semua pelanggan terlayani dengan total jarak atau biaya minimal, dengan mempertimbangkan 
+              sehingga semua pelanggan terlayani dengan total jarak, dengan mempertimbangkan 
               batasan kapasitas kendaraan.
             </p>
             <div className="bg-accent/50 p-4 rounded-lg">
@@ -65,12 +65,12 @@ export function AboutPage() {
               <h4 className="mb-2">1. Particle Swarm Optimization (PSO)</h4>
               <p className="text-muted-foreground mb-2">
                 PSO adalah algoritma metaheuristik berbasis populasi yang terinspirasi dari perilaku sosial 
-                kawanan burung atau ikan. Setiap partikel dalam populasi merepresentasikan solusi potensial 
+                sekelompok burung. Setiap partikel dalam populasi merepresentasikan solusi potensial 
                 dan bergerak dalam ruang pencarian berdasarkan pengalaman pribadi dan kolektif.
               </p>
               <div className="bg-accent/30 p-3 rounded">
                 <p className="text-muted-foreground">
-                  <strong>Keunggulan:</strong> Konvergensi cepat, implementasi sederhana, cocok untuk ruang pencarian kontinyu.
+                  <strong>Keunggulan:</strong> Konvergensi cepat, implementasi sederhana, cocok untuk ruang pencarian kontinu.
                 </p>
               </div>
             </div>
@@ -86,7 +86,7 @@ export function AboutPage() {
               </p>
               <div className="bg-accent/30 p-3 rounded">
                 <p className="text-muted-foreground">
-                  <strong>Keunggulan:</strong> Eksplorasi ruang pencarian yang baik, dapat menghindari local optima, 
+                  <strong>Keunggulan:</strong> Eksplorasi ruang pencarian yang baik dan 
                   fleksibel untuk berbagai tipe masalah.
                 </p>
               </div>
@@ -98,13 +98,12 @@ export function AboutPage() {
               <h4 className="mb-2">3. Integer Linear Programming (ILP)</h4>
               <p className="text-muted-foreground mb-2">
                 ILP adalah metode optimasi matematis yang mencari solusi optimal dengan memformulasikan 
-                masalah sebagai program linear dengan variabel bilangan bulat. Metode ini menggunakan 
-                teknik branch-and-bound atau cutting plane untuk menemukan solusi optimal.
+                masalah sebagai program linear dengan variabel bilangan biner. Metode diimplementasikan menggunakan Gurobi Optimizer.
               </p>
               <div className="bg-accent/30 p-3 rounded">
                 <p className="text-muted-foreground">
                   <strong>Keunggulan:</strong> Dapat menemukan solusi optimal (jika waktu cukup), memberikan 
-                  bound untuk kualitas solusi, basis matematis yang kuat.
+                  acuan tolak ukur untuk kualitas solusi dan basis matematis yang kuat.
                 </p>
               </div>
             </div>
@@ -158,14 +157,12 @@ export function AboutPage() {
           <CardContent className="space-y-3">
             <p>
               Aplikasi ini dibuat untuk tujuan edukatif dan penelitian dalam bidang optimasi 
-              dan vehicle routing. Hasil simulasi menggunakan implementasi sederhana dari 
-              algoritma-algoritma yang disebutkan.
+              dan vehicle routing. Hasil simulasi menggunakan implementasi Integer Linear Programming,
+              Particle Swarm Optimzation, dan Genetic Algorithm.
             </p>
             <div className="bg-muted/50 p-4 rounded-lg">
               <p className="text-muted-foreground">
-                <strong>Catatan:</strong> Implementasi algoritma dalam aplikasi ini adalah versi 
-                simulasi yang disederhanakan. Untuk aplikasi riil, diperlukan implementasi yang 
-                lebih kompleks dengan parameter tuning yang tepat.
+                <strong>Catatan:</strong> Implementasi algoritma dalam aplikasi ini mungkin memerlukan parameter dengan tuning yang tepat.
               </p>
             </div>
           </CardContent>
