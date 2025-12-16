@@ -21,7 +21,7 @@ Sebelum instalasi, **Node.js** 16.x atau lebih tinggi sudah terinstall di perang
    
    Buat file `.env` di root folder:
    ```env
-   VITE_API_URL=http://localhost:8000/api
+   VITE_API_URL = http://127.0.0.1:8000/api
    ```
 
 4. **Jalankan Development Server**
