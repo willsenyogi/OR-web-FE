@@ -9,7 +9,7 @@ Sebelum instalasi, **Node.js** 16.x atau lebih tinggi sudah terinstall di perang
 
 1. **Buka Terminal Baru**
    ```bash
-   cd mdvrp-simulation
+   cd OR-Web-FE
    ```
 
 2. **Install Dependencies**
